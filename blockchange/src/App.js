@@ -13,6 +13,8 @@ function App() {
   const [openModal, setOpenModal] = useState(false);
   const [loadVendorDashboard, setLoadVendorDashboard] = useState(false)
   const [loadConsumerDashboard, setLoadConsumerDashboard] = useState(false)
+  const [ewallet_id, setEwallet_id] = useState("")
+  const [bankId, setBankId] = useState("")
 
   const handleLogin = () => {
     var provider = new firebase.auth.GoogleAuthProvider();
@@ -51,16 +53,35 @@ function App() {
         else{
           // Initialize Wallet
 
-          // var raw = JSON.stringify({"first_name":"John","last_name":"Doe","email":"","ewallet_reference_id":user.uid,"metadata":{"merchant_defined":true},"phone_number":"","type":"person","contact":{"phone_number":"+14155551311","email":"johndoe@rapyd.net","first_name":"John","last_name":"Doe","mothers_name":"Jane Smith","contact_type":"personal","address":{"name":"John Doe","line_1":"123 Main Street","line_2":"","line_3":"","city":"Anytown","state":"NY","country":"US","zip":"12345","phone_number":"+14155551111","metadata":{},"canton":"","district":""},"identification_type":"PA","identification_number":"1234567890","date_of_birth":"11/22/2000","country":"US","nationality":"FR","metadata":{"merchant_defined":true}}});
+          var raw = JSON.stringify({"first_name":"John","last_name":"Doe","email":"","ewallet_reference_id":user.uid,"metadata":{"merchant_defined":true},"phone_number":"","type":"person","contact":{"phone_number":"+14155551311","email":"johndoe@rapyd.net","first_name":"John","last_name":"Doe","mothers_name":"Jane Smith","contact_type":"personal","address":{"name":"John Doe","line_1":"123 Main Street","line_2":"","line_3":"","city":"Anytown","state":"NY","country":"US","zip":"12345","phone_number":"+14155551111","metadata":{},"canton":"","district":""},"identification_type":"PA","identification_number":"1234567890","date_of_birth":"11/22/2000","country":"US","nationality":"FR","metadata":{"merchant_defined":true}}});
 
-          // makeRequest('POST', "https://sandboxapi.rapyd.net/v1/user", raw)
-          // .then((response) => {
+          makeRequest('POST', "https://sandboxapi.rapyd.net/v1/user", raw)
+          .then((response) => {
+
+            const ewallet_id = response.data.id;
+            setEwallet_id(ewallet_id)
             
+            // Issue Bank Account for this wallet
+            var raw = JSON.stringify({"currency":"EUR","country":"SK","description":"Issue bank account number to wallet","ewallet":ewallet_id,"merchant_reference_id":user.uid,"metadata":{"merchant_defined":true}});
+
+            makeRequest('POST', "https://sandboxapi.rapyd.net/v1/issuing/bankaccounts", raw)
+            .then((response) => {
+              const bankId = response.data.id
+              setBankId(bankId)
+
+              //Transfer 100 Eur to bank id
+              var raw = JSON.stringify({"issued_bank_account":bankId,"amount":"100","currency":"EUR"});
+              makeRequest('POST', "https://sandboxapi.rapyd.net/v1/issuing/bankaccounts/bankaccounttransfertobankaccount", raw)
+              .then((response) => {
+                // Successfully transferred 100 Eur to new accounts
+                // Show Modal 
+                setOpenModal(true)
+              })
+
+              
+            })
             
-          // })
-          
-          // Show Modal 
-          setOpenModal(true)
+          })
          
         }
 
@@ -84,6 +105,8 @@ function App() {
   if (openModal) {
     return (<OpenModalComponent 
       userInfo={userInfo}
+      ewallet_id={ewallet_id}
+      bankId={bankId}
       />)
   }
   else if(loadConsumerDashboard){
@@ -121,7 +144,9 @@ function OpenModalComponent(props) {
   useEffect(() => {
     if(isVendor){
       db.collection("users").doc(props.userInfo.uid).set({
-        type: "vendor"
+        type: "vendor",
+        ewallet_id: props.ewallet_id,
+        bankId: props.bankId
       })
       .then(() => {
         // console.log("Added Vendor");
@@ -130,7 +155,9 @@ function OpenModalComponent(props) {
     }
     if(isConsumer) {
       db.collection("users").doc(props.userInfo.uid).set({
-        type: "consumer"
+        type: "consumer",
+        ewallet_id: props.ewallet_id,
+        bankId: props.bankId
       })
       .then(() => {
         // console.log("Added Consumer");
@@ -316,10 +343,39 @@ function VendorDashboard(props){
           if(docData.verified){
             // Continue with the transaction
             console.log("Do that Rapyd transaction you have been waiting for!");
-            setFinalOpenModal(true)
+
+            db.collection("users").doc(props.userInfo.uid).get()
+            .then((querySnapshot) => {
+              const vendorWallet = querySnapshot.data().ewallet_id
+
+              db.collection("users").doc(consumerUid).get()
+              .then((querySnapshot) => {
+                const consumerWallet = querySnapshot.data().ewallet_id 
             
-            // Stop listening for updates
-            unsubscribe();
+                var raw = JSON.stringify({"source_ewallet":vendorWallet,"amount":transactionAmount,"currency":"EUR","destination_ewallet":consumerWallet,"metadata":{"merchant_defined":true}});
+
+                makeRequest('POST', "https://sandboxapi.rapyd.net/v1/account/transfer", raw)
+                .then((response) => {
+                  const transactionId = response.data.id;
+
+                  if(response.data.status == "PEN"){
+
+                    // Accept this transaction
+                    var raw = JSON.stringify({"id":transactionId,"metadata":{"merchant_defined":"accepted"},"status":"accept"});
+
+                    makeRequest('POST', "https://sandboxapi.rapyd.net/v1/account/transfer/response", raw)
+                    .then(() => {
+                      console.log("Transaction Accepted!");
+
+                      setFinalOpenModal(true)
+                
+                      // Stop listening for updates
+                      unsubscribe();
+                    })
+                  }
+                })
+            })
+            })            
           }
         })
       })
