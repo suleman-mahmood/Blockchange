@@ -4,6 +4,7 @@ import firebase, {db} from './firebase-init';
 import {Modal, Button, TextInput} from 'react-materialize';
 import QRCode from 'qrcode.react';
 import QrReader from 'react-qr-reader'
+import makeRequest from './MakeRequests'
 
 function App() {
 
@@ -48,8 +49,19 @@ function App() {
           }
         }
         else{
-          // Show Modal
+          // Initialize Wallet
+
+          var raw = JSON.stringify({"first_name":"John","last_name":"Doe","email":"","ewallet_reference_id":user.uid,"metadata":{"merchant_defined":true},"phone_number":"","type":"person","contact":{"phone_number":"+14155551311","email":"johndoe@rapyd.net","first_name":"John","last_name":"Doe","mothers_name":"Jane Smith","contact_type":"personal","address":{"name":"John Doe","line_1":"123 Main Street","line_2":"","line_3":"","city":"Anytown","state":"NY","country":"US","zip":"12345","phone_number":"+14155551111","metadata":{},"canton":"","district":""},"identification_type":"PA","identification_number":"1234567890","date_of_birth":"11/22/2000","country":"US","nationality":"FR","metadata":{"merchant_defined":true}}});
+
+          makeRequest('POST', "https://sandboxapi.rapyd.net/v1/user", raw)
+          .then((response) => {
+            
+            
+          })
+          
+          // Show Modal 
           setOpenModal(true)
+         
         }
 
         setSignInCompleted(true)
@@ -254,6 +266,7 @@ function VendorDashboard(props){
   const [transactionAmount, setTransactionAmount] = useState(0)
   const [initiateTransaction, setInitiateTransaction] = useState(false)
   const [openModal, setOpenModal] = useState(false)
+  const [finalOpenModal, setFinalOpenModal] = useState(false)
 
   const handleScan = data => {
     if (data && !stopScan) {
@@ -303,6 +316,7 @@ function VendorDashboard(props){
           if(docData.verified){
             // Continue with the transaction
             console.log("Do that Rapyd transaction you have been waiting for!");
+            setFinalOpenModal(true)
             
             // Stop listening for updates
             unsubscribe();
@@ -355,6 +369,29 @@ function VendorDashboard(props){
             label="Enter Amount"
             onChange={(e) => {setTransactionAmount(e.target.value)}}
           />
+        </Modal>
+
+        <Modal
+          actions={[
+            <Button flat modal="close" node="button" waves="green">OK</Button>
+          ]}
+          header="The transaction was successfull!"
+          id="Modal-0"
+          open={finalOpenModal}
+          options={{
+            dismissible: false,
+            endingTop: '10%',
+            inDuration: 250,
+            onCloseEnd: null,
+            onCloseStart: null,
+            onOpenEnd: null,
+            onOpenStart: null,
+            opacity: 0.5,
+            outDuration: 250,
+            preventScrolling: true,
+            startingTop: '4%'
+          }}
+        >
         </Modal>
     </div>
   )
