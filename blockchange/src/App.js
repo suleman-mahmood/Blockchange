@@ -51,13 +51,13 @@ function App() {
         else{
           // Initialize Wallet
 
-          var raw = JSON.stringify({"first_name":"John","last_name":"Doe","email":"","ewallet_reference_id":user.uid,"metadata":{"merchant_defined":true},"phone_number":"","type":"person","contact":{"phone_number":"+14155551311","email":"johndoe@rapyd.net","first_name":"John","last_name":"Doe","mothers_name":"Jane Smith","contact_type":"personal","address":{"name":"John Doe","line_1":"123 Main Street","line_2":"","line_3":"","city":"Anytown","state":"NY","country":"US","zip":"12345","phone_number":"+14155551111","metadata":{},"canton":"","district":""},"identification_type":"PA","identification_number":"1234567890","date_of_birth":"11/22/2000","country":"US","nationality":"FR","metadata":{"merchant_defined":true}}});
+          // var raw = JSON.stringify({"first_name":"John","last_name":"Doe","email":"","ewallet_reference_id":user.uid,"metadata":{"merchant_defined":true},"phone_number":"","type":"person","contact":{"phone_number":"+14155551311","email":"johndoe@rapyd.net","first_name":"John","last_name":"Doe","mothers_name":"Jane Smith","contact_type":"personal","address":{"name":"John Doe","line_1":"123 Main Street","line_2":"","line_3":"","city":"Anytown","state":"NY","country":"US","zip":"12345","phone_number":"+14155551111","metadata":{},"canton":"","district":""},"identification_type":"PA","identification_number":"1234567890","date_of_birth":"11/22/2000","country":"US","nationality":"FR","metadata":{"merchant_defined":true}}});
 
-          makeRequest('POST', "https://sandboxapi.rapyd.net/v1/user", raw)
-          .then((response) => {
+          // makeRequest('POST', "https://sandboxapi.rapyd.net/v1/user", raw)
+          // .then((response) => {
             
             
-          })
+          // })
           
           // Show Modal 
           setOpenModal(true)
